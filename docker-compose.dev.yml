@@ -1,0 +1,24 @@
+version: '3.9'
+
+# Development override - use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  backend:
+    build:
+      target: builder
+    command: npm run dev
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://cwx_user:cwx_password_change_me@postgres:5432/cloudwatchx
+
+  frontend:
+    build:
+      target: builder
+    command: npm run dev
+    volumes:
+      - ./frontend/src:/app/src
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_WS_URL: http://localhost:4000

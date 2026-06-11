@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  VIEWER
+}
+
+enum ServerStatus {
+  HEALTHY
+  WARNING
+  CRITICAL
+  OFFLINE
+  UNKNOWN
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+}
+
+enum AlertLevel {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  password     String
+  role         UserRole   @default(VIEWER)
+  refreshToken String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  incidents    Incident[]
+  auditLogs    AuditLog[]
+  alerts       Alert[]
+
+  @@map("users")
+}
+
+model Server {
+  id          String       @id @default(cuid())
+  name        String
+  hostname    String       @unique
+  ipAddress   String
+  port        Int          @default(9100)
+  tags        String[]
+  group       String?
+  status      ServerStatus @default(UNKNOWN)
+  lastSeen    DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  incidents       Incident[]
+  alerts          Alert[]
+  monitoringRules MonitoringRule[]
+  metricSnapshots MetricSnapshot[]
+
+  @@map("servers")
+}
+
+model Incident {
+  id           String           @id @default(cuid())
+  title        String
+  description  String
+  severity     IncidentSeverity
+  status       IncidentStatus   @default(OPEN)
+  serverId     String
+  assignedToId String?
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  server     Server  @relation(fields: [serverId], references: [id])
+  assignedTo User?   @relation(fields: [assignedToId], references: [id])
+  timeline   IncidentTimeline[]
+
+  @@map("incidents")
+}
+
+model IncidentTimeline {
+  id         String   @id @default(cuid())
+  incidentId String
+  message    String
+  createdAt  DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@map("incident_timelines")
+}
+
+model Alert {
+  id         String      @id @default(cuid())
+  title      String
+  message    String
+  level      AlertLevel
+  status     AlertStatus @default(ACTIVE)
+  serverId   String?
+  metric     String?
+  value      Float?
+  threshold  Float?
+  userId     String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  server Server? @relation(fields: [serverId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@map("alerts")
+}
+
+model MonitoringRule {
+  id         String   @id @default(cuid())
+  name       String
+  metric     String
+  operator   String
+  threshold  Float
+  severity   IncidentSeverity
+  serverId   String?
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  server Server? @relation(fields: [serverId], references: [id])
+
+  @@map("monitoring_rules")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model MetricSnapshot {
+  id        String   @id @default(cuid())
+  serverId  String
+  cpu       Float
+  ram       Float
+  disk      Float
+  networkIn Float
+  networkOut Float
+  uptime    Float
+  loadAvg   Float
+  timestamp DateTime @default(now())
+
+  server Server @relation(fields: [serverId], references: [id])
+
+  @@index([serverId, timestamp])
+  @@map("metric_snapshots")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  payload   Json
+  sent      Boolean  @default(false)
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
