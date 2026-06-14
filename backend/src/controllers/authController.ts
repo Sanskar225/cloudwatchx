@@ -22,12 +22,12 @@ export class AuthController {
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         jwtConfig.secret,
-        { expiresIn: jwtConfig.expiresIn }
+        { expiresIn: '15m' }
       );
       const refreshToken = jwt.sign(
         { id: user.id },
         jwtConfig.refreshSecret,
-        { expiresIn: jwtConfig.refreshExpiresIn }
+        { expiresIn: '7d' }
       );
 
       await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
@@ -74,7 +74,7 @@ export class AuthController {
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         jwtConfig.secret,
-        { expiresIn: jwtConfig.expiresIn }
+        { expiresIn: '15m' }
       );
 
       res.json({ success: true, data: { accessToken } });

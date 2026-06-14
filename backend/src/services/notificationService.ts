@@ -12,6 +12,7 @@ interface NotificationPayload {
   value: number;
   threshold: number;
   severity: string;
+  [key: string]: unknown;
 }
 
 export const notificationService = {
@@ -25,8 +26,7 @@ export const notificationService = {
     await Promise.allSettled(tasks);
 
     await prisma.notification.create({
-      data: { type: payload.type, payload, sent: true },
-    });
+data: { type: payload.type, payload: JSON.parse(JSON.stringify(payload)), sent: true },    });
   },
 
   sendSlack: async (payload: NotificationPayload) => {
