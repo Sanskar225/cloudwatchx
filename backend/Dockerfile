@@ -17,7 +17,8 @@ RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 RUN mkdir -p logs
-EXPOSE 4000
+RUN chown -R node:node /app
 USER node
+EXPOSE 4000
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
