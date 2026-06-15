@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -7,17 +7,16 @@ COPY . .
 RUN npm run prisma:generate
 RUN npm run build
 
-FROM node:20-alpine AS production
+FROM node:20-slim AS production
 WORKDIR /app
-RUN apk add --no-cache dumb-init
+RUN apt-get update -y && apt-get install -y openssl dumb-init && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production
 COPY package*.json ./
 COPY prisma ./prisma/
 RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-RUN mkdir -p logs
-RUN chown -R node:node /app
+RUN mkdir -p logs && chown -R node:node /app
 USER node
 EXPOSE 4000
 ENTRYPOINT ["dumb-init", "--"]
